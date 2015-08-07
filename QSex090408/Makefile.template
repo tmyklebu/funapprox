@@ -1,0 +1,111 @@
+# =============================================================================
+# This is the Makefile.template of EGlib
+# - 2007-12-27
+# 	- Separate template generation part 
+# - 2007-12-20
+# 	- Update to create a full .h and improve support for x86_64 
+# 	and mac OSX, and to generate a unified library interface
+# =============================================================================
+
+# =============================================================================
+# Here we read some configurations, you should edit this file instead 
+# of this makefile
+include Makefile.common
+
+#==============================================================================
+# Default targets to do
+.PHONY: selftest default
+#DEFAULT += selftest $(ALL_FILE_TEMPLATE) 
+DEFAULT += selftest
+default: $(DEFAULT) 
+
+# check some stuff in here
+selftest: 
+	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
+	@if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
+	@if [ ! -d $(DEP_DIR) ]; then mkdir -p $(DEP_DIR); fi
+	@if [ ! -d $(ALT_DIR) ]; then mkdir -p $(ALT_DIR); fi
+
+# rule to force an action
+FORCE:
+
+# =============================================================================
+# This is a list of tags whose name shoud be changed while compiling
+# different versions of template files
+DO_CHANGE := epsLpNum EGlpNumGetStr EGlpNumReadStr EGlpNumCeil EGlpNumFloor \
+	EGlpNumInv zeroLpNum oneLpNum EGlpNumSet EGlpNumIsEqual EGlpNumIsEqqual \
+	EGlpNumIsNeq EGlpNumIsNeqq EGlpNumIsNeqZero EGlpNumIsNeqqZero EGlpNumIsLess \
+	EGlpNumIsSumLess EGlpNumIsDiffLess EGlpNumIsLessDbl EGlpNnumIsGreaDbl \
+	EGlpNumIsLeq EGlpNumCopyDiffRatio EGlpNumCopyDiff EGlpNumCopySum EGlpNumCopy \
+	EGlpNumSetToMaxAbs EGlpNumSetToMinAbs EGlpNumCopySqrOver EGlpNumCopyAbs \
+	EGlpNumCopyNeg EGlpNumCopyFrac EGlpNumCopyArray EGlpNumSubInnProdTo \
+	EGlpNumAddInnProdTo EGlpNumSubUiTo EGlpNumAddUiTo EGlpNumAddTo EGlpNumSubTo \
+	EGlpNumMultTo EGlpNumDivTo EGlpNumDivUiTo EGlpNumMultUiTo EGlpNumZero \
+	EGlpNumOne EGlpNumSign EGlpNumToLf EGlpNumAllocArray EGlpNumInitVar \
+	EGlpNumInitVar EGlpNumClearVar EGlpNumReallocArray EGlpNumFreeArray \
+	EGlpNumIsGreaDbl EGlpNumIsLessDbl EGutilPermSort EGlpNumInnProd
+
+# =============================================================================
+# This is a list of functions whose name shoudn't be changed while compiling
+# different versions of templates
+NO_CHANGE := main sscanf sprintf fprintf fprint ungetc perror parseargs \
+	memset listen fscanf fflush fclose TRACE connect bind accept \
+	time printf getrusage ILL_PTRWORLD_ROUTINES DEBUG ILL_IFTRACE \
+	NULL strcasecmp strncasecmp
+
+
+#==============================================================================
+# This is to help simplify the makefile for the templates (I hope), note that 
+# TYPE_NUMBER should match the corresponding EGLPNUM_TYPE definition.
+dbl_% $(OBJ_DIR)/dbl_% $(ALT_DIR)/dbl_% $(DEP_DIR)/dbl_% %.dbl : TYPE_AFFIX = dbl
+dbl_% $(OBJ_DIR)/dbl_% $(ALT_DIR)/dbl_% $(DEP_DIR)/dbl_% %.dbl : TYPE_NAME = "double"
+dbl_% $(OBJ_DIR)/dbl_% $(ALT_DIR)/dbl_% $(DEP_DIR)/dbl_% %.dbl : TYPE_NUMBER = 0
+mpq_% $(OBJ_DIR)/mpq_% $(ALT_DIR)/mpq_% $(DEP_DIR)/mpq_% %.mpq : TYPE_AFFIX = mpq
+mpq_% $(OBJ_DIR)/mpq_% $(ALT_DIR)/mpq_% $(DEP_DIR)/mpq_% %.mpq : TYPE_NAME = "mpq_t"
+mpq_% $(OBJ_DIR)/mpq_% $(ALT_DIR)/mpq_% $(DEP_DIR)/mpq_% %.mpq : TYPE_NUMBER = 9
+mpf_% $(OBJ_DIR)/mpf_% $(ALT_DIR)/mpf_% $(DEP_DIR)/mpf_% %.mpf : TYPE_AFFIX = mpf
+mpf_% $(OBJ_DIR)/mpf_% $(ALT_DIR)/mpf_% $(DEP_DIR)/mpf_% %.mpf : TYPE_NAME = "mpf_t"
+mpf_% $(OBJ_DIR)/mpf_% $(ALT_DIR)/mpf_% $(DEP_DIR)/mpf_% %.mpf : TYPE_NUMBER = 10
+
+#==============================================================================
+# Default rules for each type of file
+# rule to make special template files
+$(ALL_TEMPLATE_SFILE): $(foreach base,$(BASES),tag.$(base))
+
+$(ALT_DIR)/dbl_% : % tag.dbl
+	@echo Building $@
+	@$(AWK) -f tag.dbl $< > $@	
+
+$(ALT_DIR)/mpf_% : % tag.mpf
+	@echo Building $@
+	@$(AWK) -f tag.mpf $< > $@	
+
+$(ALT_DIR)/mpq_% : % tag.mpq
+	@echo Building $@
+	@$(AWK) -f tag.mpq $< > $@	
+
+tag: $(ALL_TFILE)
+	@echo Making $@
+	@$(CTAGS) -x --c-kinds=+xp-m --c++-kinds=+xp-m $^ | $(CUT) -d \  -f 1 | \
+	$(UNIQ) > $@2; for j in $(NO_CHANGE); do $(GREP) -v -w $$j $@2 > $@3; \
+	mv $@3 $@2; done; if [ ! -f $@ ]; then mv $@2 $@; else \
+	val=`diff tag2 tag|wc -l`; if [ $$val -ne 0 ]; then mv $@2 $@; else rm $@2; \
+	fi; fi
+
+$(foreach base,$(BASES),tag.$(base)): tag
+	@echo Making Awk preprocessor $@
+	@rm -f $@; for i in `cat $<`; do \
+	echo "/\<$$i\>/ {gsub(/\<$$i\>/,\"$(TYPE_AFFIX)_$$i\")};" >> $@; done;\
+	for i in $(DO_CHANGE); do \
+	echo "/\<$$i\>/ {gsub(/\<$$i\>/,\"$(TYPE_AFFIX)_$$i\")};" >> $@; done; \
+	for i in $(ALL_TFILE); do \
+	echo "/\<$$i\>/ {gsub(/\<$$i\>/,\"$(TYPE_AFFIX)_$$i\")};" >> $@; done; \
+	echo "/\<EGlpNum_t\>/ {gsub(/\<EGlpNum_t\>/,\"$(TYPE_NAME)\")};">> $@; \
+	echo "{print};" >> $@
+
+clean:
+#	-@rm -Rf $(ALL_FILE_TEMPLATE) tag $(foreach base,$(BASES),tag.$(base))
+
+# end of Makefile.template
+# =============================================================================
+

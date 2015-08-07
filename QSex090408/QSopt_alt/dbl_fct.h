@@ -1,0 +1,176 @@
+/****************************************************************************/
+/*                                                                          */
+/* This file is part of QSopt_ex.                                           */
+/*                                                                          */
+/* (c) Copyright 2006 by David Applegate, William Cook, Sanjeeb Dash,       */
+/* and Daniel Espinoza.  Sanjeeb Dash's ownership of copyright in           */
+/* QSopt_ex is derived from his copyright in QSopt.                         */
+/*                                                                          */
+/* This code may be used under the terms of the GNU General Public License  */
+/* (Version 2.1 or later) as published by the Free Software Foundation.     */
+/*                                                                          */
+/* Alternatively, use is granted for research purposes only.                */
+/*                                                                          */
+/* It is your choice of which of these two licenses you are operating       */
+/* under.                                                                   */
+/*                                                                          */
+/* We make no guarantees about the correctness or usefulness of this code.  */
+/*                                                                          */
+/****************************************************************************/
+
+/* RCSINFO $Id: dbl_fct.h,v 1.3 2003/11/05 16:57:39 meven Exp $ */
+#ifndef dbl___FUNCTIONS_H
+#define dbl___FUNCTIONS_H
+#include "basicdefs.h"
+int dbl_ILLfct_compute_zA (dbl_lpinfo * lp,
+                                             dbl_svector * z,
+                                             dbl_svector * zA),
+  dbl_ILLfct_compute_wz (dbl_lpinfo * lp,
+                                         double * wz),
+  dbl_ILLfct_adjust_viol_bounds (dbl_lpinfo * lp),
+  dbl_ILLfct_perturb_bounds (dbl_lpinfo * lp),
+  dbl_ILLfct_perturb_phaseI_bounds (dbl_lpinfo * lp),
+  dbl_ILLfct_bound_shift (dbl_lpinfo * lp,
+                                            int col,
+                                            int bndtype,
+                                            double newbnd),
+  dbl_ILLfct_adjust_viol_coefs (dbl_lpinfo * lp),
+  dbl_ILLfct_perturb_coefs (dbl_lpinfo * lp),
+  dbl_ILLfct_coef_shift (dbl_lpinfo * lp,
+                                         int col,
+                                         double newcoef),
+  dbl_ILLfct_test_pivot (dbl_lpinfo * lp,
+                                         int indx,
+                                         int indxtype,
+                                         double piv_val);
+
+void dbl_ILLfct_load_workvector (dbl_lpinfo * lp,
+                                                         dbl_svector * s),
+  dbl_ILLfct_zero_workvector (dbl_lpinfo * lp),
+  dbl_ILLfct_set_variable_type (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_pobj (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_dobj (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_xbz (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_piz (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_phaseI_xbz (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_phaseI_piz (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_dz (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_phaseI_dz (dbl_lpinfo * lp),
+  dbl_ILLfct_compute_yz (dbl_lpinfo * lp,
+                                         dbl_svector * yz,
+                                         dbl_svector * updz,
+                                         int ecol),
+  dbl_ILLfct_compute_zz (dbl_lpinfo * lp,
+                                         dbl_svector * zz,
+                                         int lindex),
+  dbl_ILLfct_compute_binvrow (dbl_lpinfo * lp,
+                                                    dbl_svector * zz,
+                                                    int row,
+                                                    double ztoler),
+  dbl_ILLfct_compute_vA (dbl_lpinfo * lp,
+                                         dbl_svector * v,
+                                         double * vA),
+  dbl_ILLfct_compute_psteep_upv (dbl_lpinfo * lp,
+                                                         dbl_svector * swz),
+  dbl_ILLfct_compute_dsteep_upv (dbl_lpinfo * lp,
+                                                         dbl_svector * swz),
+  dbl_ILLfct_update_basis_info (dbl_lpinfo * lp,
+                                                        int eindex,
+                                                        int lindex,
+                                                        int lvstat),
+  dbl_ILLfct_update_xz (dbl_lpinfo * lp,
+                                        double tz,
+                                        int eindex,
+                                        int lindex),
+  dbl_ILLfct_update_piz (dbl_lpinfo * lp,
+                                         double alpha),
+  dbl_ILLfct_update_pIpiz (dbl_lpinfo * lp,
+                                             dbl_svector * z,
+                                             double alpha),
+  dbl_ILLfct_update_dz (dbl_lpinfo * lp,
+                                        int eindex,
+                                        double alpha),
+  dbl_ILLfct_update_pIdz (dbl_lpinfo * lp,
+                                            dbl_svector * zA,
+                                            int eindex,
+                                            double alpha),
+  dbl_ILLfct_unroll_bound_change (dbl_lpinfo * lp),
+  dbl_ILLfct_unroll_coef_change (dbl_lpinfo * lp),
+  dbl_ILLfct_check_pfeasible (dbl_lpinfo * lp,
+                                                    dbl_feas_info * fs,
+                                                    double ftol),
+  dbl_ILLfct_check_pIpfeasible (dbl_lpinfo * lp,
+                                                        dbl_feas_info * fs,
+                                                        double ftol),
+  dbl_ILLfct_check_dfeasible (dbl_lpinfo * lp,
+                                                    dbl_feas_info * fs,
+                                                    double ftol),
+  dbl_ILLfct_dual_adjust (dbl_lpinfo * lp,
+                                            double ftol),
+  dbl_ILLfct_dphaseI_simple_update (dbl_lpinfo * lp,
+                                                                double ftol),
+  dbl_ILLfct_set_status_values (dbl_lpinfo * lp,
+                                                        int pstatus,
+                                                        int dstatus,
+                                                        int ptype,
+                                                        int dtype),
+  dbl_ILLfct_init_counts (dbl_lpinfo * lp),
+  dbl_ILLfct_update_counts (dbl_lpinfo * lp,
+                                                int f,
+                                                int upi,
+                                                double upd),
+  dbl_ILLfct_print_counts (dbl_lpinfo * lp),
+  dbl_ILLfct_check_pIdfeasible (dbl_lpinfo * lp,
+                                                        dbl_feas_info * fs,
+                                                        double ftol),
+  dbl_ILLfct_update_pfeas (dbl_lpinfo * lp,
+                                             int lindex,
+                                             dbl_svector * srhs),
+  dbl_ILLfct_compute_ppIzz (dbl_lpinfo * lp,
+                                                dbl_svector * srhs,
+                                                dbl_svector * ssoln),
+  dbl_ILLfct_update_ppI_prices (dbl_lpinfo * lp,
+                                                        dbl_price_info * pinf,
+                                                        dbl_svector * srhs,
+                                                        dbl_svector * ssoln,
+                                                        int eindex,
+                                                        int lindex,
+                                                        double alpha),
+  dbl_ILLfct_update_dfeas (dbl_lpinfo * lp,
+                                             int eindex,
+                                             dbl_svector * srhs),
+  dbl_ILLfct_compute_dpIy (dbl_lpinfo * lp,
+                                             dbl_svector * srhs,
+                                             dbl_svector * ssoln),
+  dbl_ILLfct_update_dpI_prices (dbl_lpinfo * lp,
+                                                        dbl_price_info * pinf,
+                                                        dbl_svector * srhs,
+                                                        dbl_svector * ssoln,
+                                                        int lindex,
+                                                        double alpha),
+  dbl_ILLfct_update_dIIfeas (dbl_lpinfo * lp,
+                                                 int eindex,
+                                                 dbl_svector * srhs),
+  dbl_ILLfct_compute_dpIIy (dbl_lpinfo * lp,
+                                                dbl_svector * srhs,
+                                                dbl_svector * ssoln),
+    dbl_ILLfct_update_dpII_prices (dbl_lpinfo * lp, dbl_price_info * pinf,
+        dbl_svector * srhs, dbl_svector * ssoln, int lindex, double eval,
+        double alpha);
+
+void dbl_fct_test_workvector (dbl_lpinfo * lp),
+  dbl_fct_test_pfeasible (dbl_lpinfo * lp),
+  dbl_fct_test_dfeasible (dbl_lpinfo * lp),
+  dbl_fct_test_pI_x (dbl_lpinfo * lp,
+                                 dbl_price_info * p),
+  dbl_fct_test_pII_x (dbl_lpinfo * lp,
+                                    dbl_price_info * p),
+  dbl_fct_test_pI_pi_dz (dbl_lpinfo * lp,
+                                         dbl_price_info * p),
+  dbl_fct_test_pII_pi_dz (dbl_lpinfo * lp,
+                                            dbl_price_info * p);
+
+dbl_bndinfo *dbl_ILLfct_new_bndinfo (void);
+void dbl_ILLfct_free_bndinfo (dbl_bndinfo * binfo);
+
+#endif /* dbl___FUNCTIONS_H */

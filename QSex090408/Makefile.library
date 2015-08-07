@@ -1,0 +1,139 @@
+# =============================================================================
+# This is the Makefile.library of EGlib
+# - 2007-12-27
+# 	- Separate template and library creation
+# - 2007-12-20
+# 	- Update to create a full .h and improve support for x86_64 
+# 	and mac OSX, and to generate a unified library interface
+# =============================================================================
+
+# =============================================================================
+# Here we read some configurations, you should edit this file instead 
+# of this makefile
+include Makefile.common
+
+#==============================================================================
+# Default targets to do
+.PHONY: indent clean selftest default
+DEFAULT += selftest $(LIB_DIR)/$(BASE_NAME).a 
+ifeq ($(OS),$(LINUX))
+DEFAULT += $(MAIN_PROG)
+endif
+ifeq ($(OS),$(CYGWIN))
+DEFAULT += $(MAIN_PROG)
+endif
+ifeq ($(OS),$(AIX))
+DEFAULT += $(MAIN_PROG)
+endif
+ifeq ($(OS),$(OSXMAC))
+DEFAULT += $(MAIN_PROG)
+endif
+ifeq ($(OS),$(SUN))
+DEFAULT += $(MAIN_PROG)
+endif
+ifeq ($(HOST),Linux)
+ifneq ($(ARCH),itanium2)
+DEFAULT += $(LIB_DIR)/$(BASE_NAME).so 
+endif
+endif
+default: $(DEFAULT) 
+make.conf: ;
+Makefile.library : ;
+
+#==============================================================================
+# Some extra dependencies
+$(OBJ_FILE): make.conf
+$(MAIN_OFILE): make.conf
+$(DEP_FILE): make.conf
+#==============================================================================
+# Rules for objective files
+$(ALL_OFILE): $(OBJ_DIR)/%.o : %.c
+	@echo Compiling $<
+	@$(CC) $(SW) $(CCFLAGS) $(MAINOPT) -c $< -o $@ 
+
+#==============================================================================
+# Rules for dependencies files
+# rule to make .d files
+#$(DEP_FILE): $(DEP_DIR)/%.d : % 
+#	@echo Making Dependencies for $< 
+#	@$(CC) -MG -MM -MF $@ -MT $@ -MT $(OBJ_DIR)/$(patsubst %.c.d,%.o,$(notdir $@)) \
+#	-MT tags $(SW) $(CCFLAGS) $(MAINOPT) $< 
+
+#tags: $(ALL_FILE)
+#	@echo Building vi $@
+#	@$(CTAGS) $^
+
+# check some stuff in here
+selftest: 
+ifndef OS
+	@echo "Unknown OS system, this may cause errors at compile time"
+endif
+	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
+	@if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
+	@if [ ! -d $(DEP_DIR) ]; then mkdir -p $(DEP_DIR); fi
+	@if [ ! -d $(ALT_DIR) ]; then mkdir -p $(ALT_DIR); fi
+
+# rule to force an action
+FORCE:
+
+#==============================================================================
+# include files for dependencies
+include $(DEP_FILE)
+
+#==============================================================================
+# Targets to be done
+
+#doc: $(INC_FILE) $(SOURCE_FILE) $(DEP_FILE) Doxyfile
+#	@echo "Generating Documentation..." && doxygen
+
+ifeq ($(OS),$(OSXMAC))
+SHARED_FLAG := -dynamiclib
+endif
+ifeq ($(OS),$(LINUX))
+SHARED_FLAG := -shared
+endif
+
+$(LIB_DIR)/$(BASE_NAME).so: $(OBJ_FILE) include/$(BASE_NAME).h
+	@echo Linking $@
+	@rm -f $@
+	@$(CC) $(SW) -o $@ $(SHARED_FLAG) $(OBJ_FILE) $(CCFLAGS) 
+
+$(LIB_DIR)/$(BASE_NAME).a: $(OBJ_FILE) include/$(BASE_NAME).h
+	@echo Linking $@
+	@rm -f $@
+	@$(AR) cq $@ $(OBJ_FILE)
+	@if ( test -f $(RANLIB) -o -f /usr/bin/ranlib -o \
+		-f /bin/ranlib -o -f /usr/ccs/bin/ranlib ) ; then \
+		echo $(RANLIB) $@ ; \
+		$(RANLIB) $@ ; \
+	fi
+
+clean:
+	-@rm -Rf doc/*
+	-@rm -f $(ALL_OFILE) $(MAIN_PROG) $(MAIN_PROG_DYN) $(MAIN_PROG_ST) $(LIB_DIR)/$(BASE_NAME).a $(LIB_DIR)/$(BASE_NAME).so
+
+IDENTFLAGS := -bli0 -i2 -lc79 -lps -sc -cdw -bfda -psl -nbc -npsl \
+							-ut -ts2 -bad -bap -bl -l80
+
+indent:
+	-@for j in $(SOURCE_DIR); do for i in $$j/*.c; do indent $$i -o _ind_ $(IDENTFLAGS) && mv _ind_ $$i && echo "Indenting $$i"; done ; done
+	-@for j in $(INCLUDE_DIR); do for i in $$j/*.h; do indent $$i -o _ind_ $(IDENTFLAGS) && mv _ind_ $$i && echo "Indenting $$i"; done; done
+
+$(MAIN_PROG): % : %.o $(BASE_NAME).a 
+	@echo Linking $@
+	@$(CC) $(SW) $(INCLUDEDIR) $(MAINOPT) $< $(CCFLAGS) $(LD_ALL_OPTION) $(LIB_FLAGS) $(filter %.a,$^) $(LD_NOALL_OPTION) -o $@ 
+
+$(MAIN_PROG_ST): %_st : %.o $(BASE_NAME).a 
+	@echo Linking $@
+	@$(CC) -static -static-libgcc $(SW) $(INCLUDEDIR) $(MAINOPT) $< $(LD_ALL_OPTION) $(filter %.a,$^) $(filter %.so,$^)  $(LD_NOALL_OPTION) $(LIB_FLAGS) $(CCFLAGS) -o $@ 
+
+$(MAIN_PROG_DYN): %_dyn : %.o $(BASE_NAME).so tags
+	@echo Linking $@ 
+	@$(CC) $(SW) $(INCLUDEDIR) $(MAINOPT) $(filter %.o,$^) $(filter %.so,$^) $(CCFLAGS) $(LIB_FLAGS) -o $@ 
+
+ifneq ($(OS), $(CYGWIN))
+VERSION := $(shell svnversion .)
+endif
+
+# end of Makefile.library
+# =============================================================================

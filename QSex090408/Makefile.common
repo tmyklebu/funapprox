@@ -1,0 +1,268 @@
+# =============================================================================
+# This is the Makefile.common from EGlib
+# - 2007-12-27
+#		- Separate template and library creation
+# - 2007-12-20
+# 		- Update to create a full .h and improve support for x86_64 
+# 		and mac OSX, and to generate a unified library interface
+# =============================================================================
+
+# =============================================================================
+# Here we read some configurations, you should edit this file instead 
+# of this makefile
+include make.conf
+#
+# =============================================================================
+# definitions of OS types
+LINUX := 0
+SUN := 1
+OSXMAC := 2
+CYGWIN := 3
+AIX := 4
+
+# =============================================================================
+# architecture dependent configuration
+ARCH:=
+HOST:=
+OS:=
+#OS:=$(CYGWIN)
+
+ifneq ($(OS),$(CYGWIN))
+ARCH = $(shell arch)
+HOST = $(shell uname)
+endif
+ifeq ($(ARCH),ia64)
+ARCH := itanium2
+SW += -fPIC
+endif
+ifeq ($(ARCH),x86_64)
+ARCH := k8
+endif
+ifeq ($(ARCH),sun4)
+ARCH := v9
+endif
+ifeq ($(ARCH),ppc)
+ARCH := G4
+endif
+ifeq ($(HOST),Linux)
+OS := $(LINUX)
+endif
+ifeq ($(HOST),SunOS)
+OS := $(SUN)
+endif
+ifeq ($(HOST),Darwin)
+OS := $(OSXMAC)
+endif
+ifeq ($(HOST),AIX)
+OS := $(AIX)
+endif
+# This makefile is set up for 64 bit compilation on AIX. If you have 32 bit
+# gmp code, you need to change this appropriately below (look for AIX).
+
+# =============================================================================
+# Here we define the source files (not need to put the prefix) that will
+# generate objective files. DO NOT INCLUDE files that don't generate objective
+# files here, they will be automagically computed
+# =============================================================================
+# Main files without template
+MAIN_SFILE := esolver.c
+# regular source files
+SOURCE_FILE :=  allocrus.c bgetopt.c except.c urandom.c zeit.c \
+	names.c symtab.c util.c exact.c reporter.c eg_exutil.c 
+# =============================================================================
+# Template main files
+TEMPLATE_MAIN_SFILE := solver.c
+# Template source files
+TEMPLATE_SFILE := rawlp.c mps.c read_mps.c lp.c write_lp.c read_lp.c \
+	readline.c lpdata.c presolve.c factor.c basis.c price.c \
+	dstruct.c simplex.c fct.c ratio.c lib.c binary.c qsopt.c sortrus.c \
+	dheaps_i.c priority.c editor.c format.c basis.h dheaps_i.h dstruct.h \
+	factor.h format.h lpdata.h lpdefs.h mps.h price.h priority.h qsopt.h \
+	qstruct.h ratio.h rawlp.h readline.h read_lp.h read_mps.h simplex.h \
+	write_lp.h lib.h editor.h sortrus.h solver.h iqsutil.h binary.h fct.h \
+	util.h util.c lp.h
+
+# =============================================================================
+# Basic programs used, if no in the PATH variable, put the full path to the
+# utilites
+# =============================================================================
+# Compiler 
+CC := gcc 
+#linker
+AR := ar
+ifeq ($(OS),$(AIX))
+ifeq ($(ARCH),power)
+AR += -X64
+endif
+endif
+
+# ranlib utility
+RANLIB := ranlib
+GREP := grep
+CTAGS := ctags
+AWK := gawk
+CUT := cut
+UNIQ := uniq
+
+# =============================================================================
+# Path for each kind of file
+# =============================================================================
+SOURCE_DIR := QSopt EXact EG
+INCLUDE_DIR := QSopt EXact EG include
+OBJ_DIR := obj
+DEP_DIR := dep
+LIB_DIR := lib
+ALT_DIR := QSopt_alt
+SOURCE_DIR += $(ALT_DIR) 
+INCLUDE_DIR += $(ALT_DIR)
+
+# =============================================================================
+# You shoudn't edit bellow this point. Other configuration is found in
+# 'make.conf', see that file for more details.
+# =============================================================================
+# types of templates to be used
+BASES := dbl mpf mpq
+
+# computed files
+ALL_TFILE := $(TEMPLATE_MAIN_SFILE) $(TEMPLATE_SFILE)
+MAIN_SFILE += $(foreach base,$(BASES),$(addprefix $(base)_,$(TEMPLATE_MAIN_SFILE)))
+SOURCE_FILE += $(foreach base,$(BASES),$(addprefix $(base)_,$(TEMPLATE_SFILE)))
+SOURCE_FILE += eg_lpnum.c dbl_eg_numutil.c mpf_eg_numutil.c mpq_eg_numutil.c
+ALL_FILE_TEMPLATE := $(addprefix $(ALT_DIR)/,$(foreach base,$(BASES),$(addprefix $(base)_,$(TEMPLATE_MAIN_SFILE) $(TEMPLATE_SFILE))))
+ALL_FILE := $(SOURCE_FILE) $(MAIN_SFILE)
+ALL_OFILE := $(patsubst %.c,%.o,$(filter %c,$(addprefix $(OBJ_DIR)/,$(ALL_FILE))))
+MAIN_PROG := $(notdir $(MAIN_SFILE:.c=))
+MAIN_PROG_DYN := $(addsuffix _dyn, $(MAIN_PROG))
+MAIN_PROG_ST := $(addsuffix _st, $(MAIN_PROG))
+
+# objective files =============================================================
+OBJ_FILE := $(addprefix $(OBJ_DIR)/,$(notdir $(patsubst %.c,%.o,$(filter %c,$(SOURCE_FILE)))))
+MAIN_OFILE := $(addprefix $(OBJ_DIR)/,$(MAIN_SFILE:.c=.o))
+
+#======== dependency files ====================================================
+DEP_FILE := $(addsuffix .d,$(addprefix $(DEP_DIR)/,$(notdir $(SOURCE_FILE) \
+	$(MAIN_SFILE) ))) 
+
+# =============================================================================
+# Define any extra includes/libraries needed by extra dependencies
+LIB_FLAGS += -lgmp 
+EXTRA_INCLUDE_DIR += $(GNUMP_INCLUDE_DIR)
+EXTRA_LIBS_DIR += $(GNUMP_LIB_DIR)
+
+#==============================================================================
+# Default search paths for each type of file
+vpath %.c $(SOURCE_DIR)
+vpath %.h $(INCLUDE_DIR) $(EXTRA_INCLUDE_DIR)
+vpath %.o $(OBJ_DIR)
+vpath %.d $(DEP_DIR)
+vpath %.a $(LIB_DIR) $(EXTRA_LIBS_DIR) $(LD_LIBRARY_PATH) 
+vpath %.so $(LD_LIBRARY_PATH) $(EXTRA_LIBS_DIR) $(LIB_DIR)
+
+# =============================================================================
+# main configuration options, the definition of _XOPEN_SOURCE is needed to use
+# posix_memalign
+MAINOPT += -DDEBUG=$(DEBUG) -DOS=$(OS) -D_XOPEN_SOURCE=600
+ifeq ($(OS),$(SUN))
+MAINOPT += -DUSE_SUNOS
+endif
+
+
+# =============================================================================
+# Optimization Flags
+ifeq ($(OS),$(AIX))
+SW += -maix64
+
+ifeq ($(ARCH),power)
+SW += -mcpu=powerpc64
+endif
+endif
+ 
+ifeq ($(OS),$(SUN))
+SW += -std=gnu89 -ggdb3 -Wall
+else
+SW += -std=gnu89 -ggdb3 -Wall -Winline -Wshadow -Wwrite-strings -Wpointer-arith \
+      -Wundef -Wcast-qual -Wbad-function-cast -Wnested-externs \
+      -Wstrict-prototypes -Wunused-function -Wunused-label -Wunused-variable \
+      -Wunused-value -Wunused-parameter -Wconversion \
+			-Wsign-compare
+endif
+
+ifdef OPTIMIZE
+ifneq ($(OPTIMIZE),0)
+SW += -O3 -fforce-addr -funroll-loops -frerun-cse-after-loop \
+      -finline-limit=1000000 -frerun-loop-opt -fno-trapping-math \
+      -funsafe-math-optimizations -ffast-math -fno-math-errno \
+      -Wuninitialized 
+else
+SW += -fno-inline
+endif
+endif
+ifeq ($(HOST),SunOS)
+SW += -m64
+endif
+ifeq ($(ARCH),k8)
+SW += -fPIC
+endif
+
+# =============================================================================
+# Libraries flags 
+LIB_FLAGS += -lm 
+ifneq ($(OS),$(OSXMAC))
+LIB_FLAGS += 
+endif
+ifeq ($(HOST),SunOS)
+LIB_FLAGS += 
+endif
+
+#==============================================================================
+# Path rules for CC
+CCFLAGS += $(patsubst %,-I%,$(subst :, ,$(INCLUDE_DIR) $(EXTRA_INCLUDE_DIR))) 
+CCFLAGS += $(patsubst %,-L%,$(subst :, ,$(LIB_DIR) $(EXTRA_LIBS_DIR)))
+
+#==============================================================================
+ifeq ($(OS),$(OSXMAC))
+SHARED_FLAG := -dynamiclib
+endif
+ifeq ($(OS),$(LINUX))
+SHARED_FLAG := -shared
+endif
+
+LD_ALL_OPTION := 
+LD_NOALL_OPTION := 
+ifeq ($(OS),$(OSXMAC))
+LD_ALL_OPTION += -Wl,-all_load
+LD_NOALL_OPTION += 
+endif
+ifeq ($(OS),$(SUN))
+LD_ALL_OPTION += 
+LD_NOALL_OPTION += 
+endif
+ifeq ($(OS),$(LINUX))
+LD_ALL_OPTION += -Wl,-whole-archive
+LD_NOALL_OPTION += -Wl,-no-whole-archive
+endif
+
+
+# =============================================================================
+# now we create the system includes to include in $(BASE_NAME).h
+SYSTEM_INCLUDES := stdlib.h unistd.h stdio.h string.h strings.h limits.h \
+									math.h float.h inttypes.h stdarg.h errno.h stddef.h \
+									netdb.h fcntl.h sys/types.h sys/socket.h netinet/in.h \
+									netinet/tcp.h
+ifeq ($(OS),$(LINUX))
+SYSTEM_INCLUDES += sys/resource.h getopt.h
+endif
+ifeq ($(OS),$(SUN))
+SYSTEM_INCLUDES += sys/param.h sys/times.h
+endif
+SYSTEM_INCLUDES += sys/time.h time.h
+HEADER_FILE += basicdefs.h urandom.h symtab.h reporter.h allocrus.h bgetopt.h zeit.h except.h
+TEMPLATE_HEADER := qstruct.h editor.h dstruct.h factor.h lpdefs.h readline.h lpdata.h basis.h dheaps_i.h \
+	qsopt.h format.h rawlp.h mps.h price.h priority.h \
+	ratio.h read_lp.h read_mps.h simplex.h write_lp.h \
+	lib.h 
+HEADER_FILE += $(foreach base,$(BASES),$(addprefix $(base)_,$(TEMPLATE_HEADER)))
+HEADER_FILE += exact.h eg_exutil.h
+
+# end of Makefile.common
+# =============================================================================
