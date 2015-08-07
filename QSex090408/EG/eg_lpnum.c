@@ -143,7 +143,7 @@ void mpq_EGlpNumSet_mpf (mpq_t var,
 	mpz_init_set_ui (max_den, (unsigned long int)1);
 	mpz_mul_2exp (max_den, max_den, EGLPNUM_PRECISION >> 1);
 	/* first we compute the exponent stored in the limbs */
-	__lexp = __cvl->_mp_exp * __GMP_BITS_PER_MP_LIMB;
+	__lexp = __cvl->_mp_exp * mp_bits_per_limb;
 	if (__lexp < 0)
 	{
 		uexp = -__lexp;
